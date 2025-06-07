@@ -1,0 +1,76 @@
+*&---------------------------------------------------------------------*
+*& Report Z_DVETR_NEW_SYNTAX
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT Z_DVETR_NEW_SYNTAX.
+" CONV operator
+data lv_str type string VALUE '113'.
+data lv_int type i VALUE 111.
+data lv_pack type p LENGTH 5 DECIMALS 2 .
+data lv_float type f VALUE '1234.456' .
+data lv_numc(5) type n VALUE '12345'.
+
+*lv_int = lv_str.
+*lv_str = lv_int.
+*write: lv_int, lv_str.
+
+"lv_float = conv f( lv_int ).
+lv_pack = conv #( lv_float ).
+write :lv_float , lv_pack , lv_numc.
+
+data(lv_char) = conv char05( lv_numc ).
+write lv_char.
+
+" New select syntax
+" fields keywords - increases readabilty . use of ctrl space for field selection
+"into clause at the last
+
+select FROM bkpf
+FIELDS belnr, gjahr , bukrs , monat
+where bukrs = 'EG01'
+INTO TABLE @data(lt_bkpf).
+
+" use case statement in SQL , in HANA calculation will happpen in DB itself
+
+select ebeln, ebelp, werks, netpr,
+        case when netpr > 100 then 'High value'
+             else 'low value'
+         end as pur_type
+         from ekpo
+          into table @data(it_Data).
+
+SELECT FROM EKPO FIELDS EBELN,EBELP,WERKS,NETPR,CASE WHEN NETPR > 100 THEN 'HIGH VALUE' WHEN NETPR = 100 THEN 'EQUAL VALUE'
+  ELSE  'LOW VALUE' END AS PUR_TYPE INTO TABLE @DATA(LT_EKPO_DATA).
+
+
+"Select Count distinct avg sum .
+"Distinct avoid redundancy in the select.
+"Count func gives the count of lines must combine with group by.
+"2. using literals/using system varaibles are in liteals
+   select ebeln,
+          10 as num_lit,
+          'sat' as string_lit,
+          @sy-langu as syst_lang,
+          @sy-uname as sys_uname
+          from ekko
+           where ebeln = '000000000000123456'
+              into table @data(lt_Data).
+
+
+     select mara~matnr, mard~lgort,
+       COUNT( DISTINCT ( MARD~MATNR ) ) as distinct_matnr,
+       COUNT( DISTINCT ( MARD~WERKS ) ) as distinct_werks,
+       SUM( MARD~LABST ) as sum_unrest,
+       AVG( MARD~INSME ) as avg_qlt_insp
+       from mara as mara INNER JOIN
+            mard as mard
+      on mara~matnr = mard~matnr
+
+      into table @data(it_data)
+      where mara~matnr = '000000000000000012' and
+            mard-lgort = @p_lgort
+      group by mara~matnr
+               mard~lgort.
+
+      "data(lv_ceil) = ceil ( 13.566 ).
